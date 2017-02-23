@@ -87,6 +87,10 @@ class GameACNetwork(object):
   def _conv2d(self, x, W, stride):
     return tf.nn.conv2d(x, W, strides = [1, stride, stride, 1], padding = "VALID")
 
+  #def _max_pool_2x2(x):
+  #  return tf.nn.max_pool(x, ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = "SAME")
+    
+
 # Actor-Critic FF Network
 class GameACFFNetwork(GameACNetwork):
   def __init__(self,
@@ -98,19 +102,27 @@ class GameACFFNetwork(GameACNetwork):
 
     # Conv1 params
     conv1_input_depth    =  Constants.IMAGE_DEPTH
-
     # Conv2 params
     conv2_input_depth    =  Constants.CONV1_NUM_FILTERS
+    # Conv3 params
+    conv3_input_depth    =  Constants.CONV2_NUM_FILTERS
 
-    dense_layer_input    =  1 + (((1 + (Constants.IMAGE_SIZE - Constants.CONV1_FILTER_SIZE) / Constants.CONV1_FILTER_STRIDE) \
-                            - Constants.CONV2_FILTER_SIZE) / Constants.CONV2_FILTER_STRIDE)
-
-    dense_layer_size     =  dense_layer_input * dense_layer_input * Constants.CONV2_NUM_FILTERS
-
+    dense_layer_input    =  Constants.IMAGE_SIZE
+    dense_layer_input   -=  Constants.CONV1_FILTER_SIZE
+    dense_layer_input   /=  Constants.CONV1_FILTER_STRIDE
+    dense_layer_input   +=  1
+    dense_layer_input   -=  Constants.CONV2_FILTER_SIZE
+    dense_layer_input   /=  Constants.CONV2_FILTER_STRIDE
+    dense_layer_input   +=  1
+    dense_layer_input   -=  Constants.CONV3_FILTER_SIZE
+    dense_layer_input   /=  Constants.CONV3_FILTER_STRIDE
+    dense_layer_input   +=  1
+ 
+    dense_layer_size     =  dense_layer_input * dense_layer_input * Constants.CONV3_NUM_FILTERS
 
     with tf.device(self._device):
       # filter height, width, in_channels, out_channels
-      # 96-8 = 88/4 = 22, 22 +1 = 23
+      # 96-8 = 88/4 = 22, 22+1 = 23
       self.W_conv1, self.b_conv1 = self._conv_variable([Constants.CONV1_FILTER_SIZE,
                                                         Constants.CONV1_FILTER_SIZE,
                                                         Constants.IMAGE_DEPTH,
@@ -121,8 +133,14 @@ class GameACFFNetwork(GameACNetwork):
                                                         Constants.CONV2_FILTER_SIZE,
                                                         Constants.CONV1_NUM_FILTERS,
                                                         Constants.CONV2_NUM_FILTERS])
+                                                        
+      # 11-4 = 8, 8/2 = 4, 4+1= 5
+      self.W_conv3, self.b_conv3 = self._conv_variable([Constants.CONV3_FILTER_SIZE,
+                                                        Constants.CONV3_FILTER_SIZE,
+                                                        Constants.CONV2_NUM_FILTERS,
+                                                        Constants.CONV3_NUM_FILTERS])
 
-      # 11x11x32 = 3872
+      # 5x5x64 = 1600
       self.W_fc1, self.b_fc1 = self._fc_variable([dense_layer_size, Constants.DENSE_LAYER_INPUT_SIZE])
 
       # weight for policy output layer
@@ -136,9 +154,9 @@ class GameACFFNetwork(GameACNetwork):
 
       h_conv1 = tf.nn.relu(self._conv2d(self.s,  self.W_conv1, Constants.CONV1_FILTER_STRIDE) + self.b_conv1)
       h_conv2 = tf.nn.relu(self._conv2d(h_conv1, self.W_conv2, Constants.CONV2_FILTER_STRIDE) + self.b_conv2)
-
-      h_conv2_flat = tf.reshape(h_conv2, [-1, dense_layer_size])
-      h_fc1 = tf.nn.relu(tf.matmul(h_conv2_flat, self.W_fc1) + self.b_fc1)
+      h_conv3 = tf.nn.relu(self._conv2d(h_conv2, self.W_conv3, Constants.CONV3_FILTER_STRIDE) + self.b_conv3)
+      h_conv3_flat = tf.reshape(h_conv3, [-1, dense_layer_size])
+      h_fc1 = tf.nn.relu(tf.matmul(h_conv3_flat, self.W_fc1) + self.b_fc1)
 
       # policy (output)
       self.pi = tf.nn.softmax(tf.matmul(h_fc1, self.W_fc2) + self.b_fc2)
@@ -161,6 +179,7 @@ class GameACFFNetwork(GameACNetwork):
   def get_vars(self):
     return [self.W_conv1, self.b_conv1,
             self.W_conv2, self.b_conv2,
+            self.W_conv3, self.b_conv3,
             self.W_fc1,   self.b_fc1,
             self.W_fc2,   self.b_fc2,
             self.W_fc3,   self.b_fc3]

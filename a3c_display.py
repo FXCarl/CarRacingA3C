@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import sys, random
 import gym
+from gym import wrappers
 
 from game_state import GameState
 from game_network import GameACFFNetwork
@@ -19,7 +20,7 @@ def choose_action(pi_values):
 
 if __name__ == "__main__":
   if len(sys.argv) != 2:
-    print 'Usage %s <checkpoint-name>' % sys.argv[0]
+    print 'Usage %s <checkpoint path>' % sys.argv[0]
 
   else:
     # use CPU for display tool
@@ -37,7 +38,7 @@ if __name__ == "__main__":
                                   device = device)
 
     sess = tf.Session()
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     sess.run(init)
 
     saver = tf.train.Saver()
@@ -49,7 +50,7 @@ if __name__ == "__main__":
       print("Could not find old checkpoint")
 
     env = gym.make(Constants.GAME)
-    env.monitor.start('/tmp/CarRacingEval')
+    env = wrappers.Monitor(env, '/tmp/gym-results')
     game_state = GameState(env, display=True, no_op_max=0)
 
     while True:
@@ -59,9 +60,10 @@ if __name__ == "__main__":
       game_state.process(action)
 
       if game_state.terminal:
-        env.monitor.close()
+        env.close()
+        gym.upload("/tmp/gym-results", api_key="sk_pI5DhfNXQ4eCXhWGyTMg")
         break
-        #game_state.reset()
+        game_state.reset()
       else:
         game_state.update()
 

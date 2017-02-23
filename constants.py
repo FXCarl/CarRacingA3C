@@ -4,7 +4,7 @@
 # Game Config #
 ###############
 GAME            =  'CarRacing-v0'
-ACTION_ACCEL    =  [0, 1, 0]
+ACTION_ACCEL    =  [0, 0.1, 0]
 ACTION_BRAKE    =  [0, 0, 0.8]
 ACTION_LEFT     =  [-1, 0, 0]
 ACTION_RIGHT    =  [1, 0, 0]
@@ -20,7 +20,7 @@ LOCAL_T_MAX           =  5         				# repeat step size
 NUM_THREADS           =  1         				# Number of parallel threads
 SAVE_INTERVAL         =  120					# in seconds
 SAVE_FILENAME         = 'scores-saved.json'
-SAVE_SCORE_THRESHOLD  =  500
+SAVE_SCORE_THRESHOLD  =  700
 
 
 #####################
@@ -37,7 +37,11 @@ CONV2_FILTER_SIZE       =  3
 CONV2_FILTER_STRIDE     =  2
 CONV2_NUM_FILTERS       =  32
 
-DENSE_LAYER_SIZE        =  3872
+CONV3_FILTER_SIZE       =  4
+CONV3_FILTER_STRIDE     =  2
+CONV3_NUM_FILTERS       =  64
+
+DENSE_LAYER_SIZE        =  1600
 DENSE_LAYER_INPUT_SIZE  =  256
 
 
@@ -69,7 +73,7 @@ CHECKPOINT_DIR  =  'checkpoints'
 # Other Constants #
 ###################
 GRADIENT_NORM_CLIP  =  40.0      # Gradient clipping norm
-MAX_ITERATIONS      =  10 ** 6
+MAX_ITERATIONS      =  20 ** 6
 ENTROPY_BETA        =  0.01      # Entropy Regularization Constant
 DISCOUNT            =  0.99      # Discount
 
